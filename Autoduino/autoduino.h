@@ -56,6 +56,12 @@ public:
 
 	/*Resets command in case of multiple takeoffs and landings*/
 	void resetCommand();
+	
+	/* Used in ALt_hold, checks if current altitude is within acceptable error*/
+	bool altInRange();
+
+	/*  Takes over throttle control to keep aircraft at altitude*/
+	void altHold(bool active);
 	 
 
 

@@ -155,3 +155,31 @@ void Autoduino::resetCommand() {
 	}
 
 }
+
+/* Used in ALt_hold, checks if current altitude is within acceptable error
+*	returns true if altitude is within range
+*/
+bool Autoduino::altInRange() {
+
+	if (*(state + 3) <= 1.1(*(command_state + 3)) && *(state + 3) >= 0.9 * (*(command_state + 3))) {
+		return true;
+	}
+	else { return false; }
+
+
+}
+
+/* Checks to see if vehicle is in specified range then makes small throttle corrections 
+ * to keep vehicle altitude closer to the reference altitude.
+* Future version could use a rate of change computation to control climb speed
+* this function might need to operate independently outside of mission_command functions
+* ie: call this at begining of program letting the system know that you want this feature
+*/
+void Autoduino::altHold(bool active) {
+	if (active) {
+		if (altInRange() && (*(state + 3) < *(command_state + 3))) { *throttle += 25; }
+		else if (altInRange() && (*(state + 3) > * (command_state + 3))) { *throttle += -25; }
+	}
+	else { return; }
+
+}
