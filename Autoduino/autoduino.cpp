@@ -16,10 +16,10 @@ Autoduino::Autoduino(int* state_in, int* command_state_in, int* throttle_ino, bo
 /*Destructor*/
 Autoduino::~Autoduino(){}
 
-/*Checks if roll & pitch are zero*/
-bool Autoduino::posible() {
+/*Checks if roll & pitch are +-3 degrees from zero*/
+bool Autoduino::stable() {
 	
-	if ((*state && *(state + 1)) == 0) { return true; }
+	if ((*state && *(state + 1)) <= 3 && (*state && *(state + 1)) >= -3 ) { return true; }
 	else {return false;}
 
 
@@ -43,12 +43,12 @@ int* Autoduino::getCurrentState() {
 /*Changes command state to pitch down slightly and throttle*/
 void Autoduino::forward(int sec) {
 
-	if (posible() && completedPreviousCommand()) {
+	if (stable() && completedPreviousCommand()) {
 		*(command_state + 1) = -15; //pitch down 15 degrees
-		//throttle_up(sec);
+		//delay(sec)
 		stabilize();
 	}
-	else { backward(sec); }
+	
 
 
 
@@ -57,21 +57,19 @@ void Autoduino::forward(int sec) {
 /*Moves vehicle backward for X seconds*/
 void Autoduino::backward(int sec) {
 
-	if (posible() && completedPreviousCommand()) {
+	if (stable() && completedPreviousCommand()) {
 		*(command_state + 1) = 15; //pitch up 15 degrees
-		//throttle_up(sec);
+		//delay(sec)
 		stabilize();
 	}
-	else { backward(sec); }
 
-	
 
 }
 
 /*translates vehicle left for X seconds*/
 void Autoduino::left(int sec) {
 
-	if (posible() && completedPreviousCommand()) {
+	if (stable() && completedPreviousCommand()) {
 		*(command_state) = 15; //roll 15 degrees
 		delay(sec*1000);
 		stabilize();
@@ -84,7 +82,7 @@ void Autoduino::left(int sec) {
 /*translates vehicle right for X seconds*/
 void Autoduino::right(int sec) {
 
-	if (posible() && completedPreviousCommand()) {
+	if (stable() && completedPreviousCommand()) {
 		*(command_state) = -15; //roll 15 degrees
 		delay(sec*1000);
 		stabilize();
@@ -107,17 +105,17 @@ void Autoduino::alt(int altitude) {
 
 	} // launch condition
 	
-	else if (posible() && completedPreviousCommand()) {
+	else if (stable() && completedPreviousCommand()) {
 		*(command_state+3) = altitude;
 	}
 
 }
 
 void Autoduino::land() {
-	if (posible() && completedPreviousCommand()) {
+	if (stable() && completedPreviousCommand()) {
 		*(command_state + 3) = MIN_ALT;
 	}
-	if (posible() && completedPreviousCommand()) {
+	if (stable() && completedPreviousCommand()) {
 		vehicle_armed = false;	// turns off motors
 		init_command = false;
 		return;
@@ -138,12 +136,9 @@ void Autoduino::throttle_up(int sec) {
 
 /*Compares states to check if previous command has been completed*/
 bool Autoduino::completedPreviousCommand() {
-	int count = 0;
-	for (int i = 0; i < 4; i++) {
-		if (*(state + i) == *(command_state + i)) { count++; }	
-	}
-	if 	(count == 4){return true;}
-	else	{return false;}
+	
+	if (stateInRange()) { return true; }	
+	else {return false;}
 
 }
 
@@ -160,7 +155,6 @@ void Autoduino::resetCommand() {
 *	returns true if altitude is within range
 */
 bool Autoduino::altInRange() {
-
 	if (*(state + 3) <= 1.1(*(command_state + 3)) && *(state + 3) >= 0.9 * (*(command_state + 3))) {
 		return true;
 	}
@@ -169,8 +163,25 @@ bool Autoduino::altInRange() {
 
 }
 
+/*Checks if states are within specific error to verify that a maneuver has been completed
+* +-10% error
+*/
+bool Autoduino::stateInRange() {
+	int count = 0;
+	for (int i = 0; i < 4; i++) {
+		if (*(state + i) <= 1.1(*(command_state + i)) && *(state + i) >= 0.9 * (*(command_state + i))) {
+			count++;
+		}
+	if (count == 4) { return true }
+	else { return false; }
+	}
+
+
+}
+
+
 /* Checks to see if vehicle is in specified range then makes small throttle corrections 
- * to keep vehicle altitude closer to the reference altitude.
+ * to keep vehicle altitude closer to 
 * Future version could use a rate of change computation to control climb speed
 * this function might need to operate independently outside of mission_command functions
 * ie: call this at begining of program letting the system know that you want this feature

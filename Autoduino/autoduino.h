@@ -19,7 +19,7 @@ public:
 	~Autoduino();
 
 	/*Checks if command can be performed*/
-	bool posible();
+	bool stable();
 
 	/*Changes reference values*/
 	//void updateCommand();
@@ -59,6 +59,9 @@ public:
 	
 	/* Used in ALt_hold, checks if current altitude is within acceptable error*/
 	bool altInRange();
+
+	/*Checks if states are within specific error to verify that a maneuver has been completed*/
+	bool stateInRange();
 
 	/*  Takes over throttle control to keep aircraft at altitude*/
 	void altHold(bool active);
